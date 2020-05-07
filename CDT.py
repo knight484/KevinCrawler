@@ -3,6 +3,7 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from Base import *
 
+
 class CDT:
     def __init__(self, headers, cookies):
         self.header = {headers.split(': ')[0]: headers.split(': ')[1]}
