@@ -1,20 +1,31 @@
-import datetime as dt
 import logging
 import random
 import re
 import time
+from urllib.parse import unquote
 
 import pymongo
-import requests
 from bs4 import BeautifulSoup
-from requests.exceptions import SSLError, ProxyError, ChunkedEncodingError
+from pymongo.errors import WriteError
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, \
-    ElementClickInterceptedException, WebDriverException, TimeoutException
-from selenium.webdriver.common.keys import Keys
+    TimeoutException
+
 from Base import *
+import logging
+import random
+import re
+import time
 from urllib.parse import unquote
+
+import pymongo
+from bs4 import BeautifulSoup
 from pymongo.errors import WriteError
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, \
+    TimeoutException
+
+from Base import *
 
 logging.captureWarnings(True)
 
@@ -272,12 +283,6 @@ if __name__ == "__main__":
     import pandas as pd
 
     db = pymongo.MongoClient("mongodb://localhost:27017")
-    # source = db['百度学术']['论文信息']
-    # urls = [i['_id'] for i in
-    #         source.aggregate(
-    #             [{"$match": {"期刊": {"$exists": True}}}, {"$project": {"url": True}}, {"$group": {"_id": "$url"}}])]
-    # temp = [u['url'] for u in db['百度学术']['论文信息'].find({"期刊网址": {"$exists": True}})]
-    # urls = [u for u in urls if u not in temp]
     d1 = list(pd.read_excel('HCP list_0414.xlsx', sheet_name=0)['HCP '])
     d2 = list(pd.read_excel('HCP list_0414.xlsx', sheet_name=1)['姓名'])
     names = list(set(d1 + d2))
