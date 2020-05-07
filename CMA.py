@@ -32,7 +32,7 @@ class CMA:
             doctor['专科分会'] = re.search(r'中华医学会(.+分会)', driver.find_element_by_class_name('title').text).group(1)
             doctor['来源'] = u
             doctor['届次'] = str()
-            print(f"({e+1}/{len(urls)})正在爬取{doctor['专科分会']}名单...")
+            print(f"({e + 1}/{len(urls)})正在爬取{doctor['专科分会']}名单...")
             content = driver.find_element_by_id('zoom').find_elements_by_tag_name('p')
             for con in content:
                 if re.search(r'\d+年\d+月', con.text):

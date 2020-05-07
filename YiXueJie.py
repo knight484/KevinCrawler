@@ -141,4 +141,4 @@ if __name__ == "__main__":
     h = "user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
     c = 'acw_tc=707c9fdd15871334981463246e306e925120c3b73489e3054860c427960dfe; Hm_lvt_b4b32a80fe822df6eceef9be77f3512b=1587133503; sajssdk_2015_cross_new_user=1; sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%2217188875f1b2e6-0109315509ce5a-5313f6f-2073600-17188875f1cad3%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%22%24latest_traffic_source_type%22%3A%22%E7%9B%B4%E6%8E%A5%E6%B5%81%E9%87%8F%22%2C%22%24latest_search_keyword%22%3A%22%E6%9C%AA%E5%8F%96%E5%88%B0%E5%80%BC_%E7%9B%B4%E6%8E%A5%E6%89%93%E5%BC%80%22%2C%22%24latest_referrer%22%3A%22%22%7D%2C%22%24device_id%22%3A%2217188875f1b2e6-0109315509ce5a-5313f6f-2073600-17188875f1cad3%22%7D; uuid=bcc995e4-dee2-460a-9a4d-cccc2e36e195; Hm_lpvt_b4b32a80fe822df6eceef9be77f3512b=1587133617'
     cr = YiXueJie(headers=h, cookies=c)
-    cr.get_course_info()
+    cr.get_course_info([])

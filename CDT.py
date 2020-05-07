@@ -1,7 +1,6 @@
 import pymongo
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-from Base import *
 
 
 class CDT:

@@ -1,18 +1,11 @@
-import datetime as dt
-import random
 import re
 import time
-
-import pandas as pd
-import pymongo
-import requests
-from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-import pprint
-from pymongo.errors import WriteError
-from Base import *
 import warnings
+
+import pymongo
+from bs4 import BeautifulSoup
+
+from Base import *
 
 warnings.filterwarnings("ignore")
 
