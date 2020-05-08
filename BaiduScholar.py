@@ -156,6 +156,7 @@ class BaiduScholar:
                         essay = dict()
                         essay['url'] = title.get_attribute('href')
                         essay['学者url'] = url
+                        essay['学者code'] = i.find_element_by_class_name('p_scholarID_id').text
                         essay['标题'] = title.text.strip()
                         essay['uid'] = essay['标题']
                     except StaleElementReferenceException:
