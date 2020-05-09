@@ -25,8 +25,10 @@ def req_get(url, header, cookie=None, proxy=None):
             print(f'\r遇到异常, 第{n}次重新尝试中...', end='')
             continue
     if r.status_code == 200:
+        print(f'\r', end='')
         return r
     else:
+        print(f'\r', end='')
         return None
 
 
