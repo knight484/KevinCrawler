@@ -24,14 +24,14 @@ class ChunYu:
     def get_hospital_id(self):
         table = self.db['医院网址']
         start_url = 'https://www.chunyuyisheng.com/pc/hospitals/'
-        r1 = req_get(start_url, header=self.header, cookie=self.cookie)
+        r1 = req_get(start_url, header=self.header, proxy=self.proxy)
         soup = BeautifulSoup(r1.text, 'lxml')
         cities = ['https://www.chunyuyisheng.com' + city['href'] for city in
                   soup.find('ul', class_='city').find_all('a')]
 
         for e, u in enumerate(cities):
             print(f"\r进度为{e + 1}/{len(cities)}...")
-            r2 = req_get(u, header=self.header, cookie=self.cookie)
+            r2 = req_get(u, header=self.header, proxy=self.proxy)
             soup = BeautifulSoup(r2.text, 'lxml')
             lists = soup.find_all('div', class_='list')
             for l in lists:
@@ -52,7 +52,7 @@ class ChunYu:
         n = 0
         start = time.time()
         for e, u in enumerate(url_list):
-            r = req_get(u, header=self.header, cookie=self.cookie)
+            r = req_get(u, header=self.header, proxy=self.proxy)
             if not r:
                 continue
             soup = BeautifulSoup(r.text, 'lxml')
@@ -77,7 +77,7 @@ class ChunYu:
                 unit_spend = spend / (e + 1)
                 remain = (len(url_list) - e - 1) * unit_spend
                 n += 1
-                print(f"\r进度({e + 1}/{len(url_list)}), 获得{n}条科室信息数据, "
+                print(f"\r进度({e + 1}/{len(url_list)}), 获得{n}条科室链接数据, "
                       f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
                       f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
         print(f"\r爬取科室id完成, 共获取{n}条数据")
@@ -92,12 +92,13 @@ class ChunYu:
         n = 1
         start = time.time()
         for e, url in enumerate(url_list):
-            r = req_get(url, header=self.header, cookie=self.cookie)
+            r = req_get(url, header=self.header, proxy=self.proxy)
             if not r:
                 continue
             soup = BeautifulSoup(r.text, 'lxml')
-            lst = soup.find('div', class_='doctor-list clearfix').find_all('div', class_='doctor-info-item')
-            if not lst:
+            try:
+                lst = soup.find('div', class_='doctor-list clearfix').find_all('div', class_='doctor-info-item')
+            except AttributeError:
                 continue
             for l in lst:
                 doctor = dict()
@@ -123,7 +124,7 @@ class ChunYu:
                 unit_spend = spend / (e + 1)
                 remain = (len(url_list) - e - 1) * unit_spend
                 n += 1
-                print(f"\r进度({e + 1}/{len(url_list)}), 获得{n}条医生信息数据, "
+                print(f"\r进度({e + 1}/{len(url_list)}), 获得{n}条医生链接数据, "
                       f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
                       f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
         print(f"\r爬取医生id完成, 共获取{n}条数据")
@@ -140,7 +141,7 @@ class ChunYu:
         for e, u in enumerate(url_list):
             n = 1
             # 尝试获取问诊标签
-            r0 = req_get(u + 'qa/', header=self.header, cookie=self.cookie)
+            r0 = req_get(u + 'qa/', header=self.header, proxy=self.proxy)
             if not r0:
                 continue
             soup = BeautifulSoup(r0.text, 'lxml')
@@ -153,7 +154,7 @@ class ChunYu:
                 while n <= 30:
                     url = f"{u}qa/?tag={tag}&page={n}"
                     n += 1
-                    r = req_get(url, header=self.header, cookie=self.cookie)
+                    r = req_get(url, header=self.header, proxy=self.proxy)
                     if not r:
                         continue
                     soup = BeautifulSoup(r.text, 'lxml')
@@ -171,7 +172,7 @@ class ChunYu:
             spend = time.time() - start
             unit_time = spend / (e + 1)
             remain = (len(url_list) - (e + 1)) * unit_time
-            print(f'\r({e + 1}/{len(url_list)})正在爬取问诊数据...'
+            print(f'\r({e + 1}/{len(url_list)})正在爬取问诊链接数据...'
                   f'用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, '''
                   f'预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}...', end='')
         return None
@@ -226,7 +227,7 @@ class ChunYu:
             spend = time.time() - start
             unit_time = spend / (e + 1)
             remain = (len(url_list) - (e + 1)) * unit_time
-            print(f'\r({e + 1}/{len(url_list)})正在爬取...'
+            print(f'\r({e + 1}/{len(url_list)})正在爬取医生信息数据...'
                   f'用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, '''
                   f'预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}...', end='')
 
@@ -270,7 +271,7 @@ class ChunYu:
             spend = time.time() - start
             unit_time = spend / (e + 1)
             remain = (len(url_list) - (e + 1)) * unit_time
-            print(f'\r({e + 1}/{len(url_list)})正在爬取...'
+            print(f'\r({e + 1}/{len(url_list)})正在爬取问诊信息数据...'
                   f'用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, '''
                   f'预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}...', end='')
         return len(url_list)
@@ -280,7 +281,19 @@ if __name__ == "__main__":
     h = 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36'
     c = 'Hm_lvt_c153f37e6f66b16b2d34688c92698e4b=1585702850,1585879123,1586029343,1586257989; Hm_lpvt_c153f37e6f66b16b2d34688c92698e4b=1586356224'
     cr = ChunYu(headers=h, cookies=c)
-    # cr.sync_database()
-    # cr.sync_database(keyword="肺动脉高压")
-    cr.get_doctor_info(amount=10)
-    # cr.get_doctor_info()
+    import random
+
+    while True:
+        hospitals = cr.db['医院网址'].distinct('url')
+        hospitals = random.sample(hospitals, int(len(hospitals) / 10))
+        departs = cr.db['科室网址'].distinct('url')
+        departs = random.sample(departs, int(len(departs) / 10))
+        doctors = cr.db['医生网址'].distinct('url')
+        doctors = random.sample(doctors, int(len(doctors) / 10))
+        queries = cr.db['医生网址'].distinct('url', {"回答": {"$regex": "分"}})
+        queries = random.sample(queries, int(len(queries) / 10))
+        cr.get_depart_id(hospitals)
+        cr.get_doctor_id(departs)
+        cr.get_query_id(doctors)
+        cr.get_doctor_info(doctors)
+        cr.get_query_id(queries)
