@@ -3,8 +3,6 @@ import time
 
 import pymongo
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
 
 from Base import *
 
