@@ -297,3 +297,4 @@ if __name__ == "__main__":
         cr.get_query_id(doctors)
         cr.get_doctor_info(doctors)
         cr.get_query_id(queries)
+
