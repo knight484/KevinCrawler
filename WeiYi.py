@@ -76,6 +76,7 @@ class WeiYi:
                 # 检查是否为尾页，若尾页则break循环
                 if not soup.find('a', class_="next"):
                     break
+        return None
 
 
 if __name__ == "__main__":
