@@ -1,5 +1,8 @@
-from requests.exceptions import SSLError, ProxyError, ChunkedEncodingError, ReadTimeout, ConnectTimeout, ConnectionError
+import datetime as dt
+import re
+
 import requests
+from requests.exceptions import SSLError, ProxyError, ChunkedEncodingError, ReadTimeout, ConnectTimeout, ConnectionError
 
 
 def req_get(url, header, cookie=None, proxy=None):
@@ -51,3 +54,37 @@ def jaccard_similarity(sent1, sent2):
         b = set(sent2.lower().split())
     c = a.intersection(b)
     return float(len(c)) / (len(a) + len(b) - len(c))
+
+
+def generate_datelist(start_date, end_date=None):
+
+    if re.match(r'\d{8}', start_date):
+        try:
+            start_date = dt.datetime.strptime(start_date, '%Y%m%d').date()
+        except ValueError:
+            raise ValueError("wrong parameter start_date, para should be like 'yyyymmdd'")
+    else:
+        raise ValueError("wrong parameter start_date, para should be like 'yyyymmdd'")
+
+    if end_date:
+        if re.match(r'\d{8}', end_date):
+            try:
+                end_date = dt.datetime.strptime(end_date, '%Y%m%d').date()
+            except ValueError:
+                raise ValueError("wrong parameter end_date, para should be like 'yyyymmdd'")
+        else:
+            raise ValueError("wrong parameter end_date, para should be like 'yyyymmdd'")
+    else:
+        end_date = dt.date.today()
+
+    day = start_date
+    days = list()
+    while day < end_date:
+        days.append(str(day).replace('-', ''))
+        day += dt.timedelta(days=1)
+
+    return days
+
+
+if __name__ == "__main__":
+    d = generate_datelist('20200303')
