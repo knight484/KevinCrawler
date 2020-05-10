@@ -17,7 +17,6 @@ def req_get(url, header, cookie=None, proxy=None):
         commend = "requests.get(url, headers=header, timeout=10)"
     while n < 10:
         try:
-            # r = requests.get(url, headers=header, cookies=cookie, verify=False)
             r = eval(commend)
             break
         except (SSLError, ProxyError, ChunkedEncodingError, ReadTimeout, ConnectTimeout, ConnectionError):
