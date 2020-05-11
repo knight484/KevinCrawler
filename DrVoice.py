@@ -117,6 +117,7 @@ class DrVoice:
             for item in items:
                 news = dict()
                 news['标题'] = item.find('div', class_='transverse-list-title').find('a').text.strip()
+                news['时间'] = item.find('span', class_="time mt15").text.strip()
                 news['url'] = item.a['href']
                 news['uid'] = item.a['href'].split('/')[-1]
 
