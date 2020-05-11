@@ -58,7 +58,6 @@ def jaccard_similarity(sent1, sent2):
 
 
 def generate_datelist(start_date, end_date=None):
-
     if re.match(r'\d{8}', start_date):
         try:
             start_date = dt.datetime.strptime(start_date, '%Y%m%d').date()
@@ -87,5 +86,15 @@ def generate_datelist(start_date, end_date=None):
     return days
 
 
+def download_image(url, path):
+    header = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36"
+    }
+    r = req_get(url, header=header)
+    with open(path, 'wb') as f:
+        f.write(r.content)
+    return None
+
+
 if __name__ == "__main__":
-    d = generate_datelist('20200303')
+    pass
