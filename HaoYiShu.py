@@ -151,15 +151,14 @@ class HaoYiShu:
         start = time.time()
         n = 0
         max_page = 1
-        for j in range(0, max_type):
-            if j != 0:
-                url = f'https://www.haoyishu.org/api/meeting/past/0/1?departmentId={j}&website=true'
-                r = req_get(url=url, header=self.header, proxy=self.proxy)
-                contents = demjson.decode(r.text)
-                max_page = contents['data']['pageCount']
+        for j in range(1, max_type):
+            url = f'https://www.haoyishu.org/api/meeting/past/0/1?departmentId={j}&website=true'
+            r = req_get(url=url, header=self.header, proxy=self.proxy)
+            contents = demjson.decode(r.text)
+            max_page = contents['data']['pageCount']
 
-            for i in range(max_page):
-                if j == 0:
+            for i in range(max_page+1):
+                if i == 0:
                     url = f'https://www.haoyishu.org/api/meeting/comming/0?departmentId={j}&website=true'
                     r = req_get(url=url, header=self.header, proxy=self.proxy)
                     contents = demjson.decode(r.text)
