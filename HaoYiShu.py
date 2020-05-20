@@ -162,7 +162,7 @@ class HaoYiShu:
                 contents = demjson.decode(r.text)
                 meetings = contents['data']['list']
 
-                for meeting in meetings[:3]:
+                for meeting in meetings:
                     meeting['url'] = f'https://www.haoyishu.org/web/meeting/detail?meetingId={meeting["meetingId"]}'
                     meeting['uid'] = meeting['meetingId']
                     meeting['departmentId'] = j
@@ -203,7 +203,7 @@ class HaoYiShu:
                 contents = demjson.decode(r.text)
                 articles = contents['data']['list']
 
-                for article in articles[:3]:
+                for article in articles:
                     article['url'] = f'https://www.haoyishu.org/web/article/detail?articleId={article["articleId"]}'
                     article['uid'] = article['articleId']
                     article['departmentId'] = j
