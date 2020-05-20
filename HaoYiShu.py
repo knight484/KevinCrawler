@@ -150,17 +150,25 @@ class HaoYiShu:
 
         start = time.time()
         n = 0
-        for j in range(1, max_type):
-            url = f'https://www.haoyishu.org/api/meeting/past/0/1?departmentId={j}&website=true'
-            r = req_get(url=url, header=self.header, proxy=self.proxy)
-            contents = demjson.decode(r.text)
-            max_page = contents['data']['pageCount']
-
-            for i in range(max_page):
-                url = f'https://www.haoyishu.org/api/meeting/past/0/{i + 1}?departmentId={j}&website=true'
+        max_page = 1
+        for j in range(0, max_type):
+            if j != 0:
+                url = f'https://www.haoyishu.org/api/meeting/past/0/1?departmentId={j}&website=true'
                 r = req_get(url=url, header=self.header, proxy=self.proxy)
                 contents = demjson.decode(r.text)
-                meetings = contents['data']['list']
+                max_page = contents['data']['pageCount']
+
+            for i in range(max_page):
+                if j == 0:
+                    url = f'https://www.haoyishu.org/api/meeting/comming/0?departmentId={j}&website=true'
+                    r = req_get(url=url, header=self.header, proxy=self.proxy)
+                    contents = demjson.decode(r.text)
+                    meetings = contents['data']
+                else:
+                    url = f'https://www.haoyishu.org/api/meeting/past/0/{i + 1}?departmentId={j}&website=true'
+                    r = req_get(url=url, header=self.header, proxy=self.proxy)
+                    contents = demjson.decode(r.text)
+                    meetings = contents['data']['list']
 
                 for meeting in meetings:
                     meeting['url'] = f'https://www.haoyishu.org/web/meeting/detail?meetingId={meeting["meetingId"]}'
@@ -224,4 +232,5 @@ if __name__ == "__main__":
     c = 'gr_user_id=df512dd0-f7c1-4210-a576-0e2ca3f3309c; grwng_uid=e9403df9-4d2d-46a8-8336-9f8927c61f69; Hm_lvt_b8d21f481877d7af7d19f0ee88d98f33=1588320918; 87f7e3c4c896ecf7_gr_session_id=a7014c54-1b75-4c79-8b9e-215a8cd065b8; 87f7e3c4c896ecf7_gr_session_id_a7014c54-1b75-4c79-8b9e-215a8cd065b8=true; sid=s%3AUGHMivjOzKRPETounjfpfupP1RnZWAqn.GaL3tsoFNkc9eL0xLiHRnGVg69uAsekT9psgJwlduOQ; Hm_lpvt_b8d21f481877d7af7d19f0ee88d98f33=1588479277'
 
     hys = HaoYiShu(headers=h, cookies=c)
-    hys.get_article_id()
+    hys.get_meeting_id()
+    # hys.get_article_id()
