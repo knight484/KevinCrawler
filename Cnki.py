@@ -41,14 +41,14 @@ class Cnki:
         self.db = mongo['知网']
         self.proxy = get_proxies()
 
-    def get_essay(self, keyword):
+    def get_essay(self, keyword, ctl_code):
 
         table = self.db['文献信息']
         table.create_index('uid')
 
         params = dict()
         params['RecordsPerPage'] = 50
-        params['QueryID'] = 3
+        params['QueryID'] = random.randint(1, 10)
         params['ID'] = ''
         params['turnpage'] = 1
         params['tpagemode'] = 'L'
@@ -56,7 +56,7 @@ class Cnki:
         params['Fields'] = ''
         params['DisplayMode'] = 'listmode'
         params['PageName'] = 'ASP.brief_default_result_aspx'
-        params['ctl'] = '8ae6b600-3ac6-4534-b876-33412b9c6462'
+        params['ctl'] = ctl_code
         params['Param'] = f"NVSM关键词 = '{keyword}'"
         params['isinEn'] = 1
 
@@ -72,7 +72,10 @@ class Cnki:
                 url += f"&{p}={params[p]}"
             r = req_get(url, header=self.header, proxy=self.proxy, cookie=self.cookie)
             soup = BeautifulSoup(r.text, 'lxml')
-            max_pg = int(soup.find('span', class_='countPageMark').text.split('/')[-1])
+            try:
+                max_pg = int(soup.find('span', class_='countPageMark').text.split('/')[-1])
+            except AttributeError:
+                pass
 
             # 主循环
             items = soup.find('table', class_='GridTableContent').find_all('tr')[1:]
@@ -80,13 +83,19 @@ class Cnki:
 
                 # 获取数据
                 essay = dict()
-                essay['title'] = item.find('a', class_='fz14').text
+                try:
+                    essay['title'] = item.find('a', class_='fz14').text
+                except AttributeError:
+                    continue
                 essay['authors'] = item.find('td', class_='author_flag').text.strip().split(';')
                 essay['journal'] = item.find('td', class_='author_flag').find_next_sibling().text.strip()
-                essay['publication'] = item.find('td', align='center').text.strip()
                 essay['type'] = item.find_all('td', align='center')[1].text.strip()
                 essay['cite'] = item.find('td', align='right').text.strip()
                 essay['uid'] = essay['title']
+                try:
+                    essay['publication'] = item.find('td', align='center').text.strip()
+                except AttributeError:
+                    pass
                 try:
                     essay['download'] = item.find('span', class_='downloadCount').text.strip()
                 except AttributeError:
@@ -148,4 +157,4 @@ if __name__ == "__main__":
     c = 'Ecp_ClientId=1200412222403053972; cnkiUserKey=88e5f366-e905-f1e7-17fa-e3240e67f653; Ecp_IpLoginFail=200522117.140.138.55; ASP.NET_SessionId=csboxgpludvgeolzt4zdpytf; SID_kns=123118; SID_klogin=125144; SID_crrs=125131; KNS_SortType=; _pk_ref=%5B%22%22%2C%22%22%2C1590131081%2C%22https%3A%2F%2Fwww.cnki.net%2F%22%5D; _pk_ses=*; SID_krsnew=125133; SID_kns_new=123113; SID_kcms=124105; RsPerPage=50'
 
     cnk = Cnki(headers=h, cookies=c)
-    cnk.get_essay('肺动脉高压')
+    cnk.get_essay('肺动脉高压', '8ae6b600-3ac6-4534-b876-33412b9c6462')
