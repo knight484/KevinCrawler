@@ -1,29 +1,15 @@
 import logging
 import random
-import re
 import time
 from urllib.parse import unquote
 
+import bs4
+import demjson
 import pymongo
 from bs4 import BeautifulSoup
 from pymongo.errors import WriteError
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, \
-    TimeoutException
-
-from Base import *
-import logging
-import random
-import re
-import time
-from urllib.parse import unquote
-
-import pymongo
-from bs4 import BeautifulSoup
-from pymongo.errors import WriteError
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, \
-    TimeoutException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
 from Base import *
 
@@ -279,27 +265,129 @@ class BaiduScholar:
                 f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
         return None
 
+    def get_scholar_link_v2(self, name_list, affl_keyword=None):
+        table = self.db['学者网址_temp']
+        table.create_index('uid')
+
+        start = time.time()
+        for e, name in enumerate(name_list):
+            start_url = f'https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=inject_page&author={name}&affiliate={affl_keyword}'
+            r = req_get(url=start_url, header=self.header, proxy=self.proxy)
+            r.encoding = r.apparent_encoding
+            token = re.search(r'bds.cf.token = "(.+)";', r.text).group(1)
+            ts = re.search(r'bds.cf.ts = "(.+)";', r.text).group(1)
+            sign = re.search(r'bds.cf.sign = "(.+)";', r.text).group(1)
+            current_page = 1
+            max_page = 100
+            n = 0
+            while current_page <= max_page:
+                url = f'https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=search_author&_token={token}&_ts={ts}&_sign={sign}&author={name}&affiliate={affl_keyword}&curPageNum={current_page}'
+                r = req_get(url=url, header=self.header, proxy=self.proxy)
+                contents = demjson.decode(r.text)
+                contents = contents['htmldata']
+                max_page = int(re.search(r'data-num="\d+">(\d+)</span><a', contents).group(1))
+
+                soup = BeautifulSoup(contents, 'lxml')
+                scholar_list = soup.find_all('div', class_="searchResultItem")
+                for s in scholar_list:
+                    n += 1
+                    scholar = dict()
+                    scholar['作者姓名'] = s.find('a', class_="personName").text.strip()
+                    scholar['作者机构'] = s.find('p', class_="personInstitution").text.strip()
+                    scholar['发表文章'] = s.find('span', class_="articleNum").text.strip()
+                    scholar['被引次数'] = s.find('span', class_="quoteNum").text.strip()
+                    try:
+                        scholar['研究领域'] = s.find('span', class_="aFiled").text.strip()
+                    except AttributeError:
+                        pass
+                    scholar['url'] = 'http://xueshu.baidu.com' + s.find('a', class_="personName")['href']
+                    scholar['uid'] = scholar['url'].split('/')[-1]
+                    table.update_one({"uid": scholar["uid"]}, {"$set": scholar}, True)
+                    end = time.time()
+                    spend = end - start
+                    unit_spend = spend / (e + 1)
+                    remain = (len(name_list) - e - 1) * unit_spend
+                    print(
+                        f"\r进度正在爬取第({e + 1}/{len(name_list)})名医生的({current_page + 1}/{max_page})页信息数据, "
+                        f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
+                        f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
+                current_page += 1
+        return None
+
+    def get_essay_link_v2(self, url_list):
+        table = self.db['论文网址_temp']
+        table.create_index('uid')
+
+        start = time.time()
+        for e, start_url in enumerate(url_list):
+            r = req_get(url=start_url, header=self.header, proxy=self.proxy)
+            r.encoding = r.apparent_encoding
+            top_soup = BeautifulSoup(r.text, 'lxml')
+            author_id = top_soup.find("span", class_='p_scholarID_id').text
+
+            post_dict = dict()
+            post_dict['_token'] = re.search(r'bds.cf.token = "(.+)";', r.text).group(1)
+            post_dict['_ts'] = re.search(r'bds.cf.ts = "(.+)";', r.text).group(1)
+            post_dict['_sign'] = re.search(r'bds.cf.sign = "(.+)";', r.text).group(1)
+            post_dict['cmd'] = 'academic_paper'
+            post_dict['entity_id'] = re.search(r"entity_id: '(.+)'", r.text).group(1)
+            post_dict['bsToken'] = re.search(r"bsToken: '(.+)'", r.text).group(1)
+            post_dict['sc_sort'] = 'sc_time'
+
+            current_page = 1
+            max_page = 100
+            while current_page <= max_page:
+
+                post_dict['curPageNum'] = str(current_page)
+                r = req_post(url='https://xueshu.baidu.com/usercenter/data/author', data=post_dict, header=self.header, proxy=self.proxy)
+                r.encoding = r.apparent_encoding
+                try:
+                    max_page = int(re.search(r'data-num="\d+">(\d+)</span><a', r.text).group(1))
+                except AttributeError:
+                    max_page = 1
+
+                soup = BeautifulSoup(r.text, 'lxml')
+                items = soup.find_all('div', class_="result")
+
+                for i in items:
+                    title = i.find('a')
+                    essay = dict()
+                    essay['url'] = 'http://xueshu.baidu.com' + title['href']
+                    essay['学者url'] = start_url
+                    essay['学者code'] = author_id
+                    essay['标题'] = title.text.strip()
+                    essay['uid'] = essay['标题']
+                    infos = i.find('div', class_='res_info').contents
+                    for info in infos:
+                        if isinstance(info, bs4.element.Tag) and 'res_year' in str(info):
+                            essay['年份'] = info.text
+                        elif isinstance(info, bs4.element.Tag) and 'cite_cont' in str(info):
+                            essay['被引量'] = info.findChildren()[1].text
+                        elif isinstance(info, bs4.element.Tag) and info.name == 'span':
+                            essay['作者'] = info.text
+                        elif isinstance(info, bs4.element.Tag) and info.name == 'a':
+                            essay['期刊'] = info.text
+                        else:
+                            pass
+                    table.update_one({"uid": essay["uid"]}, {"$set": essay}, True)
+                    end = time.time()
+                    spend = end - start
+                    unit_spend = spend / (e + 1)
+                    remain = (len(url_list) - e - 1) * unit_spend
+                    print(
+                        f"\r进度正在爬取第({e + 1}/{len(url_list)})名医生的({current_page + 1}/{max_page})页信息数据, "
+                        f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
+                        f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
+                current_page += 1
+        return None
+
 
 if __name__ == "__main__":
-    import pandas as pd
-
-    db = pymongo.MongoClient("mongodb://localhost:27017")
-    d1 = list(pd.read_excel('HCP list_0414.xlsx', sheet_name=0)['HCP '])
-    d2 = list(pd.read_excel('HCP list_0414.xlsx', sheet_name=1)['姓名'])
-    names = list(set(d1 + d2))
-    got = db['百度学术']['学者网址'].aggregate([
-        {"$group": {"_id": '$作者姓名', "count": {"$sum": 1}}},
-        {"$match": {"count": {"$eq": 1}}}
-    ])
-    got = [g["_id"] for g in got]
-    names = [n for n in names if n in got]
-
     h = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
     c = "Hm_lvt_f28578486a5410f35e6fbd0da5361e5f=1576123001; BAIDUID=3179CBBC74CC1AB8C9047E47521B587F:FG=1; PSTM=1586876295; BIDUPSID=1AAB03EE9D09AB07E4AB9BCFA3E6C96A; BDRCVFR[w2jhEs_Zudc]=mbxnW11j9Dfmh7GuZR8mvqV; delPer=0; BDSVRTM=10; BD_HOME=0; H_PS_PSSID=; Hm_lvt_d0e1c62633eae5b65daca0b6f018ef4c=1587181956; Hm_lpvt_d0e1c62633eae5b65daca0b6f018ef4c=1587181956"
     cr = BaiduScholar(headers=h, cookies=c)
-    while True:
-        try:
-            cr.get_scholar_link(names, affl_keyword='医院')
-            break
-        except TimeoutException:
-            cr.driver.close()
+
+    db = pymongo.MongoClient("mongodb://localhost:27017")
+    tab = db['百度学术']['学者网址_temp']
+    doc_list = tab.distinct('url')[2:3]
+    cr.get_essay_link_v2(doc_list)
