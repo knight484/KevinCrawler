@@ -9,12 +9,40 @@ def req_get(url, header, cookie=None, proxy=None):
     r = requests.models.Response()
     n = 0
     # 尝试获取问诊标签
-    if proxy:
+    if proxy and cookie:
+        commend = "requests.get(url, headers=header, proxies=proxy, cookies=cookie, timeout=10, verify=False)"
+    elif proxy:
         commend = "requests.get(url, headers=header, proxies=proxy, timeout=10, verify=False)"
     elif cookie:
         commend = "requests.get(url, headers=header, cookies=cookie, timeout=10, verify=False)"
     else:
         commend = "requests.get(url, headers=header, timeout=10)"
+    while n < 10:
+        try:
+            r = eval(commend)
+            break
+        except (SSLError, ProxyError, ChunkedEncodingError, ReadTimeout, ConnectTimeout, ConnectionError):
+            n += 1
+            print(f'\r遇到异常, 第{n}次重新尝试中...', end='')
+            continue
+    if r.status_code == 200:
+        print(f'\r', end='')
+        return r
+    else:
+        print(f'\r', end='')
+        return None
+
+
+def req_post(url, header, data, cookie=None, proxy=None):
+    r = requests.models.Response()
+    n = 0
+    # 尝试获取问诊标签
+    if proxy:
+        commend = "requests.post(url, data=data, headers=header, proxies=proxy, timeout=10, verify=False)"
+    elif cookie:
+        commend = "requests.post(url, data=data, headers=header, cookies=cookie, timeout=10, verify=False)"
+    else:
+        commend = "requests.post(url, data=data, headers=header, timeout=10)"
     while n < 10:
         try:
             r = eval(commend)
