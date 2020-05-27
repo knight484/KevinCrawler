@@ -46,17 +46,18 @@ def req_post(url, header, data, cookie=None, proxy=None):
     while n < 10:
         try:
             r = eval(commend)
-            break
         except (SSLError, ProxyError, ChunkedEncodingError, ReadTimeout, ConnectTimeout, ConnectionError):
             n += 1
             print(f'\r遇到异常, 第{n}次重新尝试中...', end='')
             continue
-    if r.status_code == 200:
-        print(f'\r', end='')
-        return r
-    else:
-        print(f'\r', end='')
-        return None
+        if r.status_code == 200:
+            print(f'\r', end='')
+            return r
+        else:
+            n += 1
+            continue
+    print(f'\r', end='')
+    return None
 
 
 def get_proxies(user='H2M12R22R225AQ9D', password='E0186CBE7B689583', host='http-dyn.abuyun.com', port='9020'):
