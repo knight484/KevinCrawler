@@ -77,7 +77,8 @@ class MedMeeting:
             items = soup.find('div', class_='history t20').find_all('dt')
             for i in items:
                 meeting = dict()
-                meeting['url'] = i.a['href']
+                meeting['url'] = i.a['href'] if i.a['href'].startswith('http') \
+                    else 'https://www.medmeeting.org' + i.a['href']
                 meeting['来源'] = u
                 try:
                     meeting['uid'] = re.search(r'http://(.+)\.me', i.a['href']).group(1) + '_' + r.url.split('/')[-1]
