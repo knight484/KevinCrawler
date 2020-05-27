@@ -78,6 +78,7 @@ class MedMeeting:
             for i in items:
                 meeting = dict()
                 meeting['url'] = i.a['href']
+                meeting['来源'] = u
                 try:
                     meeting['uid'] = re.search(r'http://(.+)\.me', i.a['href']).group(1) + '_' + r.url.split('/')[-1]
                 except AttributeError:
