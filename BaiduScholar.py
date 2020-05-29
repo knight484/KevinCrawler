@@ -273,6 +273,8 @@ class BaiduScholar:
         for e, name in enumerate(name_list):
             start_url = f'https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=inject_page&author={name}&affiliate={affl_keyword}'
             r = req_get(url=start_url, header=self.header, proxy=self.proxy)
+            if not r:
+                continue
             r.encoding = r.apparent_encoding
             token = re.search(r'bds.cf.token = "(.+)";', r.text).group(1)
             ts = re.search(r'bds.cf.ts = "(.+)";', r.text).group(1)
@@ -285,7 +287,10 @@ class BaiduScholar:
                 r = req_get(url=url, header=self.header, proxy=self.proxy)
                 contents = demjson.decode(r.text)
                 contents = contents['htmldata']
-                max_page = int(re.search(r'data-num="\d+">(\d+)</span><a', contents).group(1))
+                try:
+                    max_page = int(re.search(r'data-num="\d+">(\d+)</span><a', contents).group(1))
+                except AttributeError:
+                    max_page = 1
 
                 soup = BeautifulSoup(contents, 'lxml')
                 scholar_list = soup.find_all('div', class_="searchResultItem")
@@ -321,6 +326,8 @@ class BaiduScholar:
         start = time.time()
         for e, start_url in enumerate(url_list):
             r = req_get(url=start_url, header=self.header, proxy=self.proxy)
+            if not r:
+                continue
             r.encoding = r.apparent_encoding
             top_soup = BeautifulSoup(r.text, 'lxml')
             author_id = top_soup.find("span", class_='p_scholarID_id').text
