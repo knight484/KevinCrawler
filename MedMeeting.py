@@ -29,9 +29,8 @@ class MedMeeting:
         start = time.time()
         for e, u in enumerate(url_list):
             r = requests.get(u, headers=self.header, cookies=self.cookie)
-            while r.status_code == 502:
-                time.sleep(30)
-                r = requests.get(u, headers=self.header, cookies=self.cookie)
+            if not r:
+                continue
             soup = BeautifulSoup(r.text, 'lxml')
             max_page = re.search(r'(\d+)', soup.find('div', class_='show_page').find_all('a')[-1]['href']).group(1)
             items = soup.find_all('div', class_='s-item')
@@ -73,6 +72,8 @@ class MedMeeting:
         start = time.time()
         for e, u in enumerate(url_list):
             r = req_get(u, header=self.header, cookie=self.cookie)
+            if not r:
+                continue
             soup = BeautifulSoup(r.text, 'lxml')
             items = soup.find('div', class_='history t20').find_all('dt')
             for i in items:
@@ -115,6 +116,8 @@ class MedMeeting:
         start = time.time()
         for e, u in enumerate(url_list):
             r = req_get(u, header=self.header, cookie=self.cookie)
+            if not r:
+                continue
             soup = BeautifulSoup(r.text, 'lxml')
             try:
                 items = soup.find('div', class_='zj-shipin clearfix t20').find_all('li')
@@ -148,6 +151,8 @@ class MedMeeting:
         start = time.time()
         for e, url in enumerate(url_list):
             r = req_get(url, header=self.header, proxy=self.proxy)
+            if not r:
+                continue
             soup = BeautifulSoup(r.text, 'lxml')
             message = dict()
             message['conf_id'] = url.split('?')[0].split('/')[-1]
@@ -215,6 +220,8 @@ class MedMeeting:
         start = time.time()
         for e, url in enumerate(url_list):
             r = req_get(url, header=self.header, cookie=self.cookie)
+            if not r:
+                continue
             soup = BeautifulSoup(r.text, "lxml")
             doctor = dict()
             doctor['name'] = soup.find("div", class_='fl f36 t').text.strip()
