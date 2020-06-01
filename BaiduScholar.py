@@ -1,4 +1,5 @@
 import logging
+import logging
 import random
 import time
 from urllib.parse import unquote
@@ -9,7 +10,8 @@ import pymongo
 from bs4 import BeautifulSoup
 from pymongo.errors import WriteError
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, \
+    TimeoutException
 
 from Base import *
 
@@ -285,7 +287,12 @@ class BaiduScholar:
             while current_page <= max_page:
                 url = f'https://xueshu.baidu.com/usercenter/data/authorchannel?cmd=search_author&_token={token}&_ts={ts}&_sign={sign}&author={name}&affiliate={affl_keyword}&curPageNum={current_page}'
                 r = req_get(url=url, header=self.header, proxy=self.proxy)
-                contents = demjson.decode(r.text)
+                if not r:
+                    continue
+                try:
+                    contents = demjson.decode(r.text)
+                except demjson.JSONDecodeError:
+                    continue
                 contents = contents['htmldata']
                 try:
                     max_page = int(re.search(r'data-num="\d+">(\d+)</span><a', contents).group(1))
@@ -346,7 +353,8 @@ class BaiduScholar:
             while current_page <= max_page:
 
                 post_dict['curPageNum'] = str(current_page)
-                r = req_post(url='https://xueshu.baidu.com/usercenter/data/author', data=post_dict, header=self.header, proxy=self.proxy)
+                r = req_post(url='https://xueshu.baidu.com/usercenter/data/author', data=post_dict, header=self.header,
+                             proxy=self.proxy)
                 r.encoding = r.apparent_encoding
                 try:
                     max_page = int(re.search(r'data-num="\d+">(\d+)</span><a', r.text).group(1))
@@ -359,7 +367,7 @@ class BaiduScholar:
                 for i in items:
                     title = i.find('a')
                     essay = dict()
-                    essay['url'] = 'http://xueshu.baidu.com' + title['href']
+                    essay['url'] = 'http://' + title['href'] if not title['href'].startswith("http") else title['href']
                     essay['学者url'] = start_url
                     essay['学者code'] = author_id
                     essay['标题'] = title.text.strip()
@@ -390,11 +398,31 @@ class BaiduScholar:
 
 
 if __name__ == "__main__":
+    import pandas as pd
+
+    db = pymongo.MongoClient("mongodb://localhost:27017")
+    # source = db['百度学术']['论文信息']
+    # urls = [i['_id'] for i in
+    #         source.aggregate(
+    #             [{"$match": {"期刊": {"$exists": True}}}, {"$project": {"url": True}}, {"$group": {"_id": "$url"}}])]
+    # temp = [u['url'] for u in db['百度学术']['论文信息'].find({"期刊网址": {"$exists": True}})]
+    # urls = [u for u in urls if u not in temp]
+    d1 = list(pd.read_excel('HCP list_0414.xlsx', sheet_name=0)['HCP '])
+    d2 = list(pd.read_excel('HCP list_0414.xlsx', sheet_name=1)['姓名'])
+    names = list(set(d1 + d2))
+    got = db['百度学术']['学者网址'].aggregate([
+        {"$group": {"_id": '$作者姓名', "count": {"$sum": 1}}},
+        {"$match": {"count": {"$eq": 1}}}
+    ])
+    got = [g["_id"] for g in got]
+    names = [n for n in names if n in got]
+
     h = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
     c = "Hm_lvt_f28578486a5410f35e6fbd0da5361e5f=1576123001; BAIDUID=3179CBBC74CC1AB8C9047E47521B587F:FG=1; PSTM=1586876295; BIDUPSID=1AAB03EE9D09AB07E4AB9BCFA3E6C96A; BDRCVFR[w2jhEs_Zudc]=mbxnW11j9Dfmh7GuZR8mvqV; delPer=0; BDSVRTM=10; BD_HOME=0; H_PS_PSSID=; Hm_lvt_d0e1c62633eae5b65daca0b6f018ef4c=1587181956; Hm_lpvt_d0e1c62633eae5b65daca0b6f018ef4c=1587181956"
     cr = BaiduScholar(headers=h, cookies=c)
-
-    db = pymongo.MongoClient("mongodb://localhost:27017")
-    tab = db['百度学术']['学者网址_temp']
-    doc_list = tab.distinct('url')[2:3]
-    cr.get_essay_link_v2(doc_list)
+    while True:
+        try:
+            cr.get_scholar_link(names, affl_keyword='医院')
+            break
+        except TimeoutException:
+            cr.driver.close()
