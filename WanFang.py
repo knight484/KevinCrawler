@@ -123,6 +123,8 @@ class WanFang:
             print(f"\r进度({e}/{len(url_list)}), "
                   f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
                   f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
+
+        driver.close()
         return None
 
 
