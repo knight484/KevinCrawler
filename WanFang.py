@@ -100,7 +100,6 @@ class WanFang:
                     print(f"\r进度({e}/{len(url_list)})", end='')
                     continue
                 for i in items:
-                    print(i.text)
                     col = i.text.split('：')[0].strip().replace(' ', '')
                     value = re.sub(r'\s+', ',', i.text.split('：')[1].strip())
                     value = re.sub(r'\[\d+\]', '', value)
