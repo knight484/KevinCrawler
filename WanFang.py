@@ -5,6 +5,7 @@ import pymongo
 from bs4 import BeautifulSoup
 import pandas as pd
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 
 from Base import *
 
@@ -105,9 +106,21 @@ class WanFang:
                     value = re.sub(r'\[\d+\]', '', value)
                     value = re.sub(r',+', ',', value)
                     paper[col] = value
+            elif "?" in url:
+                paper['摘要'] = soup.find('div', class_="abstract").text.strip('\n摘要： 更多')
+                items = soup.find('ul', class_='info').find_all('li')
+                for i in items:
+                    key = i.text.split('：')[0].strip().replace(' ', '')
+                    value = re.sub(r'\s+', ',', i.text.split('：')[1].strip())
+                    value = re.sub(r'\[\d+\]', '', value)
+                    value = re.sub(r',+', ',', value)
+                    paper[key] = value
             elif soup.find('title').text == '万方数据知识服务平台':
                 driver.get(url)
-                paper['标题'] = driver.find_element_by_class_name('detailTitleCN').text.strip()
+                try:
+                    paper['标题'] = driver.find_element_by_class_name('detailTitleCN').text.strip()
+                except NoSuchElementException:
+                    continue
                 items = driver.find_elements_by_css_selector('.detailList > div')
                 for i in items:
                     key = i.text.split('：')[0].strip().replace(' ', '')
