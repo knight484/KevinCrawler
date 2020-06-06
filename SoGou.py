@@ -2,7 +2,7 @@ import random
 import re
 import time
 import warnings
-
+import requests
 import pymongo
 from bs4 import BeautifulSoup
 
@@ -51,7 +51,7 @@ class SoGou:
             end = time.time()
             spend = end - start
             print(
-                f"\r{url}, 进度..获得{n*10}条文献信息数据, 本次存储用时{round(end - t1, 4)}秒，"
+                f"\r{url}, 进度..获得{n * 10}条文献信息数据, 本次存储用时{round(end - t1, 4)}秒，"
                 f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, ", end='')
             if soup.find('a', id='sogou_next'):
                 n += 1
@@ -64,4 +64,4 @@ if __name__ == "__main__":
     h = 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36'
 
     sg = SoGou(headers=h, cookies=c)
-    sg.get_wechat_id()
+    sg.get_zhihu_id('python')
