@@ -28,43 +28,7 @@ class BaiduScholar:
         mongo = pymongo.MongoClient("mongodb://localhost:27017")
         self.db = mongo['百度学术']
         self.proxy = get_proxies()
-        self.driver = webdriver.Chrome()
-
-    def get_scholar_link(self, name_list, affl_keyword=None):
-        table = self.db['学者网址']
-        table.create_index('uid')
-
-        self.driver.implicitly_wait(10)
-        start = time.time()
-
-        for e, name in enumerate(name_list):
-            url = f'http://xueshu.baidu.com/usercenter/data/authorchannel?cmd=inject_page&author={name}&affiliate={affl_keyword}'
-            self.driver.get(url)
-            time.sleep(random.random() * 3)
-            scholar_list = self.driver.find_elements_by_class_name("searchResultItem")
-            for s in scholar_list:
-                scholar = dict()
-                scholar['作者姓名'] = s.find_element_by_class_name("personName").text.strip()
-                scholar['作者机构'] = s.find_element_by_class_name("personInstitution").text.strip()
-                scholar['发表文章'] = s.find_element_by_class_name("articleNum").text.strip()
-                scholar['被引次数'] = s.find_element_by_class_name("quoteNum").text.strip()
-                try:
-                    scholar['研究领域'] = s.find_element_by_class_name("aFiled").text.strip()
-                except NoSuchElementException:
-                    pass
-                scholar['url'] = s.find_element_by_class_name("personName").get_attribute('href')
-                scholar['uid'] = scholar['url'].split('/')[-1]
-                if scholar['作者姓名'] == name:
-                    table.update_one({"uid": scholar["uid"]}, {"$set": scholar}, True)
-                    end = time.time()
-                    spend = end - start
-                    unit_spend = spend / (e + 1)
-                    remain = (len(name_list) - e - 1) * unit_spend
-                    print(
-                        f"\r进度({e + 1}/{len(name_list)})条咨询信息数据, "
-                        f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
-                        f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
-        return None
+        # self.driver = webdriver.Chrome()
 
     def get_scholar_detail(self, url_list):
         table = self.db['学者信息']
@@ -122,67 +86,6 @@ class BaiduScholar:
                 f"\r{url}, 进度({e + 1}/{len(url_list)})条咨询信息数据, "
                 f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
                 f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
-        return None
-
-    def get_essay_link(self, url_list):
-        table = self.db['论文网址']
-        table.create_index('uid')
-
-        self.driver = webdriver.Chrome()
-        self.driver.implicitly_wait(3)
-        start = time.time()
-        for e, url in enumerate(url_list):
-            self.driver.get(url)
-            go_next = True
-            n = 0
-            while go_next:
-                time.sleep(3)
-                items = self.driver.find_elements_by_class_name("result")
-                for i in items:
-                    try:
-                        title = i.find_element_by_tag_name('a')
-                        essay = dict()
-                        essay['url'] = title.get_attribute('href')
-                        essay['学者url'] = url
-                        essay['学者code'] = i.find_element_by_class_name('p_scholarID_id').text
-                        essay['标题'] = title.text.strip()
-                        essay['uid'] = essay['标题']
-                    except StaleElementReferenceException:
-                        continue
-                    essay['作者'] = ''
-                    col_list = [
-                        ('年份', '.res_year'),
-                        ('作者', '.res_info > span:nth-child(2)'),
-                        ('期刊', '.res_info > a'),
-                        ('被引量', '.cite_cont'),
-                    ]
-                    for col, rule in col_list:
-                        try:
-                            essay[col] = i.find_element_by_css_selector(rule).text.strip()
-                        except (NoSuchElementException, StaleElementReferenceException):
-                            pass
-                    if essay['作者'].startswith("被引量"):
-                        essay['作者'] = ''
-                    n += 1
-                    t1 = time.time()
-                    table.update_one({"uid": essay["uid"]}, {"$set": essay}, True)
-                    end = time.time()
-                    spend = end - start
-                    unit_spend = spend / (e + 1)
-                    remain = (len(url_list) - e - 1) * unit_spend
-                    print(
-                        f"\r{url}, 进度({e + 1}/{len(url_list)}), 从该作者获得{n}条文献信息数据, 本次存储用时{round(end - t1, 4)}秒，"
-                        f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
-                        f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
-
-                try:
-                    nxt_btn = self.driver.find_element_by_class_name('res-page-next')
-                    if nxt_btn.get_attribute('style') == "display: none;":
-                        go_next = False
-                    else:
-                        nxt_btn.click()
-                except NoSuchElementException:
-                    go_next = False
         return None
 
     def get_essay_detail(self, url_list):
@@ -267,7 +170,7 @@ class BaiduScholar:
                 f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
         return None
 
-    def get_scholar_link_v2(self, name_list, affl_keyword=None):
+    def get_scholar_link(self, name_list, affl_keyword=None):
         table = self.db['学者网址_temp']
         table.create_index('uid')
 
@@ -326,7 +229,7 @@ class BaiduScholar:
                 current_page += 1
         return None
 
-    def get_essay_link_v2(self, url_list):
+    def get_essay_link_by_authorlink(self, url_list):
         table = self.db['论文网址_temp']
         table.create_index('uid')
 
@@ -396,33 +299,66 @@ class BaiduScholar:
                 current_page += 1
         return None
 
+    def get_essay_link_by_keyword(self, keyword, filter=None):
+
+        table = self.db['论文网址_关键词']
+        table.create_index('uid')
+
+        n = 0
+        total = 0
+        has_next = True
+        start = time.time()
+        while has_next:
+            url = f'https://xueshu.baidu.com/s?wd={keyword}&pn={n}&tn=SE_baiduxueshu_c1gjeupa&ie=utf-8&sc_hit=1'
+            if filter:
+                url += filter
+
+            r = req_get(url, header=self.header, proxy=self.proxy)
+            if not r:
+                n += 10
+                continue
+            soup = BeautifulSoup(r.text, 'lxml')
+
+            for item in soup.find_all('div', class_='result'):
+                essay = dict()
+                essay['title'] = item.a.text.strip()
+                essay['url'] = 'httpss' + item.a['href']
+                essay['uid'] = re.search(r'paperid=(.+)&', item.a['href']).group(1)
+                essay['abstract'] = item.find('div', class_='c_abstract').text.strip()
+                infos = item.find('div', class_='sc_info').find_all('span')
+                for info in infos:
+                    if re.search(r'(\d{4})年', info.text):
+                        essay['publish'] = info.text.replace('年', '').strip()
+                    elif '被引量:' in info.text:
+                        essay['cite'] = info.text.replace('被引量:', '').strip()
+                    elif not info.a or 'journal' in info.a['href']:
+                        essay['journal'] = info.text.strip()
+                    elif 'author' in info.a['href']:
+                        essay['author'] = re.sub(r'\s+', ' ', info.text.strip())
+                    else:
+                        continue
+                total += 1
+                table.update_one({"uid": essay["uid"]}, {"$set": essay}, True)
+                end = time.time()
+                spend = end - start
+                unit_spend = spend / total
+                print(
+                    f"\r进度正在爬取第({total})论文信息数据, 平均用时{round(unit_spend,4)}秒，"
+                    f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}. ", end='')
+            nxt = soup.find('i', class_='c-icon-pager-next')
+            if not nxt:
+                has_next = False
+            else:
+                n += 10
+        return None
+
 
 if __name__ == "__main__":
-    import pandas as pd
-
-    db = pymongo.MongoClient("mongodb://localhost:27017")
-    # source = db['百度学术']['论文信息']
-    # urls = [i['_id'] for i in
-    #         source.aggregate(
-    #             [{"$match": {"期刊": {"$exists": True}}}, {"$project": {"url": True}}, {"$group": {"_id": "$url"}}])]
-    # temp = [u['url'] for u in db['百度学术']['论文信息'].find({"期刊网址": {"$exists": True}})]
-    # urls = [u for u in urls if u not in temp]
-    d1 = list(pd.read_excel('HCP list_0414.xlsx', sheet_name=0)['HCP '])
-    d2 = list(pd.read_excel('HCP list_0414.xlsx', sheet_name=1)['姓名'])
-    names = list(set(d1 + d2))
-    got = db['百度学术']['学者网址'].aggregate([
-        {"$group": {"_id": '$作者姓名', "count": {"$sum": 1}}},
-        {"$match": {"count": {"$eq": 1}}}
-    ])
-    got = [g["_id"] for g in got]
-    names = [n for n in names if n in got]
-
     h = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
     c = "Hm_lvt_f28578486a5410f35e6fbd0da5361e5f=1576123001; BAIDUID=3179CBBC74CC1AB8C9047E47521B587F:FG=1; PSTM=1586876295; BIDUPSID=1AAB03EE9D09AB07E4AB9BCFA3E6C96A; BDRCVFR[w2jhEs_Zudc]=mbxnW11j9Dfmh7GuZR8mvqV; delPer=0; BDSVRTM=10; BD_HOME=0; H_PS_PSSID=; Hm_lvt_d0e1c62633eae5b65daca0b6f018ef4c=1587181956; Hm_lpvt_d0e1c62633eae5b65daca0b6f018ef4c=1587181956"
     cr = BaiduScholar(headers=h, cookies=c)
-    while True:
-        try:
-            cr.get_scholar_link(names, affl_keyword='医院')
-            break
-        except TimeoutException:
-            cr.driver.close()
+    filters = [None, '&filter=sc_year%3D%7B2018%2C%2B%7D', '&filter=sc_year%3D%7B2018%2C%2B%7D%28sc_level%3A%3D%7B6%7D%29', '&filter=sc_year%3D%7B2018%2C%2B%7D%28sc_level%3A%3D%7B5%7D%29', '&filter=sc_year%3D%7B2018%2C%2B%7D%28sc_level%3A%3D%7B0%7D%29']
+    keyowrds = ['肾移植', '肝移植']
+    for kw in keyowrds:
+        for f in filters:
+            cr.get_essay_link_by_keyword(kw, filter=f)
