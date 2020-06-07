@@ -1,6 +1,4 @@
 import logging
-import logging
-import random
 import time
 from urllib.parse import unquote
 
@@ -9,9 +7,6 @@ import demjson
 import pymongo
 from bs4 import BeautifulSoup
 from pymongo.errors import WriteError
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, \
-    TimeoutException
 
 from Base import *
 
