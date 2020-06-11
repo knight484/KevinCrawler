@@ -25,146 +25,6 @@ class BaiduScholar:
         self.proxy = get_proxies()
         # self.driver = webdriver.Chrome()
 
-    def get_scholar_detail(self, url_list):
-        table = self.db['学者信息']
-        table.create_index('uid')
-
-        start = time.time()
-        for e, url in enumerate(url_list):
-            r = req_get(url, header=self.header, proxy=self.proxy)
-            if not r:
-                print(f'{e}/{len(url_list)}..', end='')
-                continue
-            r.encoding = r.apparent_encoding
-            soup = BeautifulSoup(r.text, 'lxml')
-
-            scholar = dict()
-            scholar['url'] = url
-            try:
-                scholar['uid'] = soup.find('span', class_='p_scholarID_id').text.strip()
-            except AttributeError:
-                print(f'{e}/{len(url_list)}..', end='')
-                continue
-            scholar['姓名'] = soup.find('div', class_='p_name').text.strip()
-            scholar['机构'] = soup.find('div', class_='p_affiliate').text.strip()
-            scholar['浏览数'] = soup.find('div', class_='p_volume').text.strip().replace("人看过", "")
-            try:
-                scholar['领域'] = soup.find('span', class_='person_domain').text
-            except AttributeError:
-                pass
-            for item in soup.find_all('li', class_='p_ach_item'):
-                scholar[item.find('p').text] = item.find('p', class_='p_ach_num').text
-            for item in soup.find_all('div', class_='pie_map_container'):
-                scholar[item.find('div', class_='pieText').contents[0]] = item.find('p', class_="number").text
-            for item in soup.find_all('div', class_="pieBox"):
-                box_detail = dict()
-                for i in item.find_all('p'):
-                    box_detail[i.contents[0]] = i.find('span', class_="boxnum").text
-                scholar[item.h3.contents[0] + "数据"] = box_detail
-            try:
-                scholar['引用数据'] = [(x['year'], x['num']) for x in
-                                   eval(re.search(r'lineMapCitedData = (.+);', r.text).group(1))]
-            except AttributeError:
-                pass
-            try:
-                scholar['成果数据'] = [(x['year'], x['num']) for x in
-                                   eval(re.search(r'lineMapAchData = (.+);', r.text).group(1))]
-            except AttributeError:
-                pass
-
-            table.update_one({"uid": scholar["uid"]}, {"$set": scholar}, True)
-            end = time.time()
-            spend = end - start
-            unit_spend = spend / (e + 1)
-            remain = (len(url_list) - e - 1) * unit_spend
-            print(
-                f"\r{url}, 进度({e + 1}/{len(url_list)})条咨询信息数据, "
-                f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
-                f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
-        return None
-
-    def get_essay_detail(self, url_list):
-        table = self.db['论文信息']
-        table.create_index('uid')
-
-        start = time.time()
-        for e, url in enumerate(url_list):
-            r = req_get(url, header=self.header, proxy=self.proxy)
-            if not r:
-                print(f'{e}/{len(url_list)}..', end='')
-                continue
-            soup = BeautifulSoup(r.text, 'lxml')
-            essay = dict()
-            try:
-                essay['标题'] = soup.find('h3').text.strip()
-            except AttributeError:
-                print(f"\r进度({e + 1}/{len(url_list)})", end='')
-                continue
-
-            try:
-                essay['来源'] = re.search(r'来自\s+(\S+)', soup.find('div', class_="love_wr").text.strip()).group(1)
-            except AttributeError:
-                pass
-
-            try:
-                essay['喜欢'] = re.search(r'喜欢\s+(\S+)', soup.find('div', class_="love_wr").text.strip()).group(1)
-            except AttributeError:
-                pass
-
-            try:
-                essay['阅读量'] = re.search(r'阅读量：\s+(\S+)', soup.find('div', class_="love_wr").text.strip()).group(1)
-            except AttributeError:
-                pass
-
-            try:
-                for item in soup.find('div', class_="love_wr").find_next_siblings('div'):
-                    col = item.text.split('：')[0].strip()
-                    value = item.text.split('：', 1)[1].strip() if item.text.split('：', 1) else '0'
-                    essay[col] = value.replace('\n展开\ue634', '')
-            except AttributeError:
-                pass
-
-            try:
-                for item in soup.find('div', class_="allversion_content").find_all('a'):
-                    key_name = item.text.strip()
-                    if key_name not in essay.keys() and key_name != "查看更多" and "(" not in key_name:
-                        key_name = key_name.replace('.', '_')
-                        essay[key_name] = item['href']
-            except (AttributeError, KeyError):
-                pass
-
-            try:
-                essay['期刊'] = soup.find('a', class_="journal_title")['title']
-                essay['期刊网址'] = 'http://xueshu.baidu.com' + soup.find('a', class_="journal_title")['href']
-                essay['期次'] = soup.find('div', class_="journal_content")['title']
-            except (AttributeError, TypeError, KeyError):
-                pass
-
-            try:
-                string = soup.find('p', class_="author_text").find('a')['href']
-                string = re.search(r'%29%20((%[0-9A-Z]{2})+)', string).group(1)
-                essay['机构'] = unquote(string, encoding='UTF-8')
-            except AttributeError:
-                pass
-
-            essay['uid'] = essay['标题']
-            essay['url'] = url
-            t1 = time.time()
-            try:
-                table.update_one({"uid": essay["uid"]}, {"$set": essay}, True)
-            except WriteError:
-                print(f"\r进度({e}/{len(url_list)}", end='')
-                continue
-            end = time.time()
-            spend = end - start
-            unit_spend = spend / (e + 1)
-            remain = (len(url_list) - e - 1) * unit_spend
-            print(
-                f"\r进度({e + 1}/{len(url_list)}), 本次存储用时{round(end - t1, 4)}秒，"
-                f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
-                f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
-        return None
-
     def get_scholar_link(self, name_list, affl_keyword=None):
         table = self.db['学者网址']
         table.create_index('uid')
@@ -225,6 +85,64 @@ class BaiduScholar:
                         f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
                         f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
                 current_page += 1
+        return None
+
+    def get_scholar_detail(self, url_list):
+        table = self.db['学者信息']
+        table.create_index('uid')
+
+        start = time.time()
+        for e, url in enumerate(url_list):
+            r = req_get(url, header=self.header, proxy=self.proxy)
+            if not r:
+                print(f'{e}/{len(url_list)}..', end='')
+                continue
+            r.encoding = r.apparent_encoding
+            soup = BeautifulSoup(r.text, 'lxml')
+
+            scholar = dict()
+            scholar['url'] = url
+            try:
+                scholar['uid'] = soup.find('span', class_='p_scholarID_id').text.strip()
+            except AttributeError:
+                print(f'{e}/{len(url_list)}..', end='')
+                continue
+            scholar['姓名'] = soup.find('div', class_='p_name').text.strip()
+            scholar['机构'] = soup.find('div', class_='p_affiliate').text.strip()
+            scholar['浏览数'] = soup.find('div', class_='p_volume').text.strip().replace("人看过", "")
+            try:
+                scholar['领域'] = soup.find('span', class_='person_domain').text
+            except AttributeError:
+                pass
+            for item in soup.find_all('li', class_='p_ach_item'):
+                scholar[item.find('p').text] = item.find('p', class_='p_ach_num').text
+            for item in soup.find_all('div', class_='pie_map_container'):
+                scholar[item.find('div', class_='pieText').contents[0]] = item.find('p', class_="number").text
+            for item in soup.find_all('div', class_="pieBox"):
+                box_detail = dict()
+                for i in item.find_all('p'):
+                    box_detail[i.contents[0]] = i.find('span', class_="boxnum").text
+                scholar[item.h3.contents[0] + "数据"] = box_detail
+            try:
+                scholar['引用数据'] = [(x['year'], x['num']) for x in
+                                   eval(re.search(r'lineMapCitedData = (.+);', r.text).group(1))]
+            except AttributeError:
+                pass
+            try:
+                scholar['成果数据'] = [(x['year'], x['num']) for x in
+                                   eval(re.search(r'lineMapAchData = (.+);', r.text).group(1))]
+            except AttributeError:
+                pass
+
+            table.update_one({"uid": scholar["uid"]}, {"$set": scholar}, True)
+            end = time.time()
+            spend = end - start
+            unit_spend = spend / (e + 1)
+            remain = (len(url_list) - e - 1) * unit_spend
+            print(
+                f"\r{url}, 进度({e + 1}/{len(url_list)})条咨询信息数据, "
+                f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
+                f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
         return None
 
     def get_essay_link_by_authorlink(self, url_list):
@@ -348,6 +266,88 @@ class BaiduScholar:
                 has_next = False
             else:
                 n += 10
+        return None
+
+    def get_essay_detail(self, url_list):
+        table = self.db['论文信息']
+        table.create_index('uid')
+
+        start = time.time()
+        for e, url in enumerate(url_list):
+            r = req_get(url, header=self.header, proxy=self.proxy)
+            if not r:
+                print(f'{e}/{len(url_list)}..', end='')
+                continue
+            soup = BeautifulSoup(r.text, 'lxml')
+            essay = dict()
+            try:
+                essay['标题'] = soup.find('h3').text.strip()
+            except AttributeError:
+                print(f"\r进度({e + 1}/{len(url_list)})", end='')
+                continue
+
+            try:
+                essay['来源'] = re.search(r'来自\s+(\S+)', soup.find('div', class_="love_wr").text.strip()).group(1)
+            except AttributeError:
+                pass
+
+            try:
+                essay['喜欢'] = re.search(r'喜欢\s+(\S+)', soup.find('div', class_="love_wr").text.strip()).group(1)
+            except AttributeError:
+                pass
+
+            try:
+                essay['阅读量'] = re.search(r'阅读量：\s+(\S+)', soup.find('div', class_="love_wr").text.strip()).group(1)
+            except AttributeError:
+                pass
+
+            try:
+                for item in soup.find('div', class_="love_wr").find_next_siblings('div'):
+                    col = item.text.split('：')[0].strip()
+                    value = item.text.split('：', 1)[1].strip() if item.text.split('：', 1) else '0'
+                    essay[col] = value.replace('\n展开\ue634', '')
+            except AttributeError:
+                pass
+
+            try:
+                for item in soup.find('div', class_="allversion_content").find_all('a'):
+                    key_name = item.text.strip()
+                    if key_name not in essay.keys() and key_name != "查看更多" and "(" not in key_name:
+                        key_name = key_name.replace('.', '_')
+                        essay[key_name] = item['href']
+            except (AttributeError, KeyError):
+                pass
+
+            try:
+                essay['期刊'] = soup.find('a', class_="journal_title")['title']
+                essay['期刊网址'] = 'http://xueshu.baidu.com' + soup.find('a', class_="journal_title")['href']
+                essay['期次'] = soup.find('div', class_="journal_content")['title']
+            except (AttributeError, TypeError, KeyError):
+                pass
+
+            try:
+                string = soup.find('p', class_="author_text").find('a')['href']
+                string = re.search(r'%29%20((%[0-9A-Z]{2})+)', string).group(1)
+                essay['机构'] = unquote(string, encoding='UTF-8')
+            except AttributeError:
+                pass
+
+            essay['uid'] = essay['标题']
+            essay['url'] = url
+            t1 = time.time()
+            try:
+                table.update_one({"uid": essay["uid"]}, {"$set": essay}, True)
+            except WriteError:
+                print(f"\r进度({e}/{len(url_list)}", end='')
+                continue
+            end = time.time()
+            spend = end - start
+            unit_spend = spend / (e + 1)
+            remain = (len(url_list) - e - 1) * unit_spend
+            print(
+                f"\r进度({e + 1}/{len(url_list)}), 本次存储用时{round(end - t1, 4)}秒，"
+                f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, "
+                f"预计还剩{int(remain // 3600)}:{int(remain % 3600 // 60)}:{int(remain % 60)}.", end='')
         return None
 
 
