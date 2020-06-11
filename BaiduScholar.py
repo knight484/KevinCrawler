@@ -166,7 +166,7 @@ class BaiduScholar:
         return None
 
     def get_scholar_link(self, name_list, affl_keyword=None):
-        table = self.db['学者网址_temp']
+        table = self.db['学者网址']
         table.create_index('uid')
 
         start = time.time()
@@ -210,8 +210,11 @@ class BaiduScholar:
                         scholar['研究领域'] = s.find('span', class_="aFiled").text.strip()
                     except AttributeError:
                         pass
-                    scholar['url'] = 'http://xueshu.baidu.com' + s.find('a', class_="personName")['href']
+                    temp_url = 'http://xueshu.baidu.com' + s.find('a', class_="personName")['href']
+                    temp_r = req_get(temp_url, header=self.header, proxy=self.proxy)
+                    scholar['url'] = temp_r.url
                     scholar['uid'] = scholar['url'].split('/')[-1]
+                    print(scholar)
                     table.update_one({"uid": scholar["uid"]}, {"$set": scholar}, True)
                     end = time.time()
                     spend = end - start
@@ -225,7 +228,7 @@ class BaiduScholar:
         return None
 
     def get_essay_link_by_authorlink(self, url_list):
-        table = self.db['论文网址_temp']
+        table = self.db['论文网址(学者页)']
         table.create_index('uid')
 
         start = time.time()
@@ -296,7 +299,7 @@ class BaiduScholar:
 
     def get_essay_link_by_keyword(self, keyword, filter=None):
 
-        table = self.db['论文网址_关键词']
+        table = self.db['论文网址(关键词)']
         table.create_index('uid')
 
         n = 0
@@ -317,7 +320,7 @@ class BaiduScholar:
             for item in soup.find_all('div', class_='result'):
                 essay = dict()
                 essay['title'] = item.a.text.strip()
-                essay['url'] = 'httpss' + item.a['href']
+                essay['url'] = 'https:' + item.a['href']
                 essay['uid'] = re.search(r'paperid=(.+)&', item.a['href']).group(1)
                 essay['abstract'] = item.find('div', class_='c_abstract').text.strip()
                 infos = item.find('div', class_='sc_info').find_all('span')
@@ -352,8 +355,4 @@ if __name__ == "__main__":
     h = "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
     c = "Hm_lvt_f28578486a5410f35e6fbd0da5361e5f=1576123001; BAIDUID=3179CBBC74CC1AB8C9047E47521B587F:FG=1; PSTM=1586876295; BIDUPSID=1AAB03EE9D09AB07E4AB9BCFA3E6C96A; BDRCVFR[w2jhEs_Zudc]=mbxnW11j9Dfmh7GuZR8mvqV; delPer=0; BDSVRTM=10; BD_HOME=0; H_PS_PSSID=; Hm_lvt_d0e1c62633eae5b65daca0b6f018ef4c=1587181956; Hm_lpvt_d0e1c62633eae5b65daca0b6f018ef4c=1587181956"
     cr = BaiduScholar(headers=h, cookies=c)
-    filters = [None, '&filter=sc_year%3D%7B2018%2C%2B%7D', '&filter=sc_year%3D%7B2018%2C%2B%7D%28sc_level%3A%3D%7B6%7D%29', '&filter=sc_year%3D%7B2018%2C%2B%7D%28sc_level%3A%3D%7B5%7D%29', '&filter=sc_year%3D%7B2018%2C%2B%7D%28sc_level%3A%3D%7B0%7D%29']
-    keyowrds = ['肾移植', '肝移植']
-    for kw in keyowrds:
-        for f in filters:
-            cr.get_essay_link_by_keyword(kw, filter=f)
+    cr.get_essay_link_by_authorlink(['https://xueshu.baidu.com/scholarID/CN-BB74BNKJ'])
