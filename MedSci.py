@@ -28,6 +28,7 @@ class MedSci:
         mongo = pymongo.MongoClient("mongodb://localhost:27017")
         self.db = mongo['梅斯医学']
         self.proxy = get_proxies()
+    
 
     def get_news_info(self, keyword):
         table = self.db['咨询概览']
