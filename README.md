@@ -1,10 +1,11 @@
 # KevinCrawler
 网站数据爬虫
 ## BaiduScholar - 百度学术
-- get_scholar_link: 通过selenium 爬取学者链接，参数为学者姓名列表和机构关键词;
-- get_scholar_detail: 通过requests 爬取学者信息，参数为学者链接列表;
-- get_essay_link: 通过selenium 爬取论文链接，参数为学者链接列表;
-- get_essay_detail: 通过requests 爬取论文信息，参数为论文链接列表
+- `get_scholar_link`: 通过`requests` 爬取学者链接，参数为`学者姓名列表`(`name_list`)和`机构关键词`(`affl_keyword`);
+- `get_scholar_detail`: 通过`requests` 爬取学者信息，参数为`学者链接列表`(`url_list`);
+- `get_essay_link_by_authorlink`: 通过`requests` 根据学者爬取论文链接，参数为`学者链接列表`(`url_list`);
+- `get_essay_link_by_keyword`: 通过`requests` 根据关键词爬取论文链接，参数为`关键词`(`keyword`)和`过滤参数`(`filter`);
+- `get_essay_detail`: 通过`requests` 爬取论文信息，参数为`论文链接列表`(`url_list`).
 ## CDT - 药物临床试验登记和信息公示平台(ChinaDrugTrails)
 - get_test: 通过selenium 爬取临床实验信息，参数为试验关键词;
 ## ChunYu - 春雨医生
