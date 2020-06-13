@@ -43,6 +43,8 @@ class ShiYanLou:
             course['url'] = url
             course['uid'] = n
             course['title'] = soup.h1.text.strip()
+            if course['title'] == '':
+                continue
             course['learned'] = re.search(r'(\d+) 人学过', soup.find('div', class_='info-body').text).group(1)
             course['follow'] = re.search(r'(\d+) 人关注', soup.find('div', class_='info-body').text).group(1)
             course['author'] = re.search(r'作者: (.+)', soup.find('div', class_='info-body').text).group(1)
