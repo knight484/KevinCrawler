@@ -24,7 +24,7 @@ class ShiYanLou:
         self.proxy = get_proxies()
 
     def get_course(self):
-        table = self.db['课程']
+        table = self.db['项目']
         table.create_index('uid')
 
         error = 0
@@ -42,11 +42,11 @@ class ShiYanLou:
             course = dict()
             course['url'] = url
             course['uid'] = n
-            course['course'] = soup.h1.text.strip()
+            course['title'] = soup.h1.text.strip()
             course['learned'] = re.search(r'(\d+) 人学过', soup.find('div', class_='info-body').text).group(1)
             course['follow'] = re.search(r'(\d+) 人关注', soup.find('div', class_='info-body').text).group(1)
             course['author'] = re.search(r'作者: (.+)', soup.find('div', class_='info-body').text).group(1)
-            course['info'] = soup.find('p', class_='info-desc font-15 color-text').text.strip()
+            course['abstract'] = soup.find('p', class_='info-desc font-15 color-text').text.strip()
             course['type'] = soup.find('span', class_='course-type-tag').text.strip()
             course['keyword'] = str()
             course['knowledge'] = str()
@@ -65,8 +65,9 @@ class ShiYanLou:
                 course['price'] = '0'
             img_url = soup.find('div', class_="box-body-top course-cover").find('img')['src']
             img_name = img_url.split('/')[-1]
-            course['img_path'] = 'C://Users/zhaoy/K.I.T/SelfMediaOperate/docs/老K玩代码/img/实验楼/' + img_name
-            download_image(img_url, course['img_path'])
+            img_name = img_name + '.jpg' if '.' not in img_name else img_name
+            course['pic'] = 'C://Users/zhaoy/K.I.T/SelfMediaOperate/docs/老K玩代码/img/实验楼/' + img_name
+            download_image(img_url, course['pic'])
             table.update_one({"uid": course['uid']}, {"$set": course}, True)
             end = time.time()
             spend = end - start
