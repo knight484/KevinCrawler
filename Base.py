@@ -29,7 +29,6 @@ def req_get(url, header, cookie=None, proxy=None):
         print(f'\r', end='')
         return r
     else:
-        print(f'\r', end='')
         return None
 
 
