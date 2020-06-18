@@ -5,7 +5,7 @@ import requests
 from requests.exceptions import SSLError, ProxyError, ChunkedEncodingError, ReadTimeout, ConnectTimeout, ConnectionError
 
 
-def req_get(url, header, cookie=None, proxy=None):
+def req_get(url, header, cookie=None, proxy=None, retry=10):
     r = requests.models.Response()
     n = 0
     # 尝试获取问诊标签
@@ -17,7 +17,7 @@ def req_get(url, header, cookie=None, proxy=None):
         commend = "requests.get(url, headers=header, cookies=cookie, timeout=10, verify=False)"
     else:
         commend = "requests.get(url, headers=header, timeout=10)"
-    while n < 10:
+    while n < retry:
         try:
             r = eval(commend)
             break
@@ -26,13 +26,12 @@ def req_get(url, header, cookie=None, proxy=None):
             print(f'\r遇到异常, 第{n}次重新尝试中...', end='')
             continue
     if r.status_code == 200:
-        print(f'\r', end='')
         return r
     else:
         return None
 
 
-def req_post(url, header, data, cookie=None, proxy=None):
+def req_post(url, header, data, cookie=None, proxy=None, retry=10):
     r = requests.models.Response()
     n = 0
     # 尝试获取问诊标签
@@ -42,7 +41,7 @@ def req_post(url, header, data, cookie=None, proxy=None):
         commend = "requests.post(url, data=data, headers=header, cookies=cookie, timeout=10, verify=False)"
     else:
         commend = "requests.post(url, data=data, headers=header, timeout=10)"
-    while n < 10:
+    while n < retry:
         try:
             r = eval(commend)
         except (SSLError, ProxyError, ChunkedEncodingError, ReadTimeout, ConnectTimeout, ConnectionError):
@@ -50,7 +49,6 @@ def req_post(url, header, data, cookie=None, proxy=None):
             print(f'\r遇到异常, 第{n}次重新尝试中...', end='')
             continue
         if r.status_code == 200:
-            print(f'\r', end='')
             return r
         else:
             n += 1
@@ -118,7 +116,7 @@ def download_image(url, path):
     header = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.129 Safari/537.36"
     }
-    r = req_get(url, header=header)
+    r = req_get(url, header=header, proxy=get_proxies())
     with open(path, 'wb') as f:
         f.write(r.content)
     return None
