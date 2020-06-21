@@ -5,6 +5,7 @@ import warnings
 import requests
 import pymongo
 from bs4 import BeautifulSoup
+import pandas as pd
 
 from Base import *
 
@@ -57,6 +58,68 @@ class SoGou:
                 n += 1
             else:
                 break
+        return None
+
+    def get_zhihu_id(self, keyword):
+        table = self.db['知乎']
+        table.create_index('uid')
+
+        # 爬取数据
+        n = 0
+        start = time.time()
+        for cur_pg in range(1, 11):
+            url = f'http://www.sogou.com/sogou?insite=zhihu.com&query={keyword}&page={cur_pg}&ie=utf8'
+            r = req_get(url, header=self.header, proxy=self.proxy)
+            if not r:
+                continue
+            time.sleep(random.random())
+            soup = BeautifulSoup(r.text, 'lxml')
+
+            items = soup.find_all('div', class_='vrwrap')
+            for item in items:
+                zh = dict()
+                try:
+                    zh['source'] = 'https://www.sogou.com' + item.a['href']
+                except TypeError:
+                    continue
+                zh['url'] = re.search(r'\("(.+)"\)',
+                                      req_get(zh['source'], header=self.header, proxy=self.proxy).text).group(1)
+                zh['title'] = item.h3.text.strip()
+                try:
+                    zh['answer'] = re.search(r'([\d.]+万?)个回答', item.text).group(1)
+                except AttributeError:
+                    pass
+                try:
+                    zh['follow'] = re.search(r'([\d.]?万?)人关注', item.text).group(1)
+                except AttributeError:
+                    pass
+                try:
+                    zh['read'] = re.search(r'([\d.]+万?)次浏览', item.text).group(1)
+                except AttributeError:
+                    pass
+                try:
+                    _like = re.search(r'(\d+)', item.i.text).group(1)
+                    zh['like'] = int(_like) if '万' not in str(_like) else int(float(_like.replace('万', '')) * 10000)
+                except AttributeError:
+                    pass
+                zh['type'] = '文章' if '/p/' in zh['url'] else '问答' if '/question/' in zh['url'] else '其它'
+                try:
+                    zh['publish'] = re.search(r'发布于 (\d{4}-\d{2}-\d{2})',
+                                              req_get(zh['url'], header=self.header, proxy=self.proxy).text).group(1)
+                except AttributeError:
+                    zh['publish'] = re.search(r'(\d{4}-\d{1,2}-\d{1,2})', item.text).group(1)
+                zh['uid'] = zh['url']
+                t1 = time.time()
+                table.update_one({"uid": zh['uid']}, {"$set": zh}, True)
+                end = time.time()
+                spend = end - start
+                print(
+                    f"\r{url}, 进度..获得{n}条文献信息数据, 本次存储用时{round(end - t1, 4)}秒，"
+                    f"用时{int(spend // 3600)}:{int(spend % 3600 // 60)}:{int(spend % 60)}, ", end='')
+                n += 1
+            cur_pg += 1
+
+        return None
 
 
 if __name__ == "__main__":
